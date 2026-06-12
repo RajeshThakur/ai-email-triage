@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AI Email Triage — Demo</title>
+<style>
+  :root {
+    --navy: #1E3A8A;
+    --blue: #2563EB;
+    --gray-50: #F9FAFB;
+    --gray-200: #E5E7EB;
+    --gray-500: #6B7280;
+    --gray-800: #1F2937;
+    --green: #059669;
+    --amber: #D97706;
+    --orange: #EA580C;
+    --red: #DC2626;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--gray-50);
+    color: var(--gray-800);
+    line-height: 1.55;
+  }
+  .container { max-width: 880px; margin: 0 auto; padding: 40px 20px 80px; }
+  header { margin-bottom: 28px; }
+  h1 { color: var(--navy); font-size: 1.7rem; margin-bottom: 6px; }
+  .subtitle { color: var(--gray-500); font-size: 0.95rem; }
+  .subtitle a { color: var(--blue); text-decoration: none; }
+
+  .card {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 10px;
+    padding: 22px;
+    margin-bottom: 20px;
+  }
+  label { font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 8px; }
+  textarea {
+    width: 100%;
+    min-height: 170px;
+    padding: 12px;
+    border: 1px solid var(--gray-200);
+    border-radius: 8px;
+    font: inherit;
+    font-size: 0.92rem;
+    resize: vertical;
+  }
+  textarea:focus { outline: 2px solid var(--blue); border-color: transparent; }
+
+  .examples { display: flex; gap: 8px; flex-wrap: wrap; margin: 12px 0; }
+  .examples button {
+    background: #fff;
+    border: 1px solid var(--gray-200);
+    border-radius: 999px;
+    padding: 6px 14px;
+    font-size: 0.83rem;
+    cursor: pointer;
+    color: var(--gray-500);
+  }
+  .examples button:hover { border-color: var(--blue); color: var(--blue); }
+
+  .submit-btn {
+    background: var(--navy);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 12px 28px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+  }
+  .submit-btn:hover { background: var(--blue); }
+  .submit-btn:disabled { opacity: 0.6; cursor: wait; }
+
+  .error {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+    color: var(--red);
+    border-radius: 8px;
+    padding: 12px 16px;
+    margin-top: 16px;
+    font-size: 0.9rem;
+    display: none;
+  }
+
+  #results { display: none; }
+  .badges { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 18px; }
+  .badge {
+    border-radius: 999px;
+    padding: 5px 14px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #fff;
+  }
+  .badge .label { opacity: 0.85; font-weight: 400; margin-right: 4px; }
+
+  .field { margin-bottom: 14px; }
+  .field h3 {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--gray-500);
+    margin-bottom: 4px;
+  }
+  .field p { font-size: 0.95rem; }
+  .reply-box {
+    background: var(--gray-50);
+    border-left: 3px solid var(--blue);
+    border-radius: 0 8px 8px 0;
+    padding: 12px 16px;
+    white-space: pre-wrap;
+  }
+  .meta { font-size: 0.78rem; color: var(--gray-500); margin-top: 16px; }
+  footer { margin-top: 32px; font-size: 0.82rem; color: var(--gray-500); }
+  footer a { color: var(--blue); }
+</style>
+</head>
+<body>
+<div class="container">
+  <header>
+    <h1>AI Email Triage</h1>
+    <p class="subtitle">
+      Paste a customer support email — get instant structured triage: intent, urgency,
+      sentiment, routing, and a suggested reply. Built with Node.js + OpenAI structured outputs.
+    </p>
+  </header>
+
+  <div class="card">
+    <label for="email-input">Customer email</label>
+    <textarea id="email-input" placeholder="Paste a raw customer email here..."></textarea>
+    <div class="examples">
+      <button data-example="angry">Try: angry refund demand</button>
+      <button data-example="feature">Try: polite feature request</button>
+      <button data-example="critical">Try: critical security report</button>
+    </div>
+    <button class="submit-btn" id="triage-btn">Triage Email</button>
+    <div class="error" id="error-box"></div>
+  </div>
+
+  <div class="card" id="results">
+    <div class="badges" id="badges"></div>
+    <div class="field"><h3>Summary</h3><p id="summary"></p></div>
+    <div class="field"><h3>Suggested routing</h3><p id="category"></p></div>
+    <div class="field"><h3>Suggested reply draft</h3><div class="reply-box" id="reply"></div></div>
+    <p class="meta" id="meta"></p>
+  </div>
+
+  <footer>
+    Demo project by Rajesh Thakur — senior backend &amp; AI integration engineer.
+    Source on <a href="https://github.com/RajeshThakur/ai-email-triage" target="_blank" rel="noopener">GitHub</a>.
+  </footer>
+</div>
+
+<script>
+const EXAMPLES = {
+  angry: `Subject: REFUND NOW - third time writing
+
+I have emailed twice already and NOBODY has responded. Your app charged me $49 AGAIN after I cancelled my subscription last month. This is theft. I want a full refund immediately or I am disputing the charge with my bank and posting about this everywhere. Absolutely fed up.
+
+- Marcus`,
+  feature: `Subject: Suggestion: dark mode for the dashboard
+
+Hi team,
+
+First off, love the product — we've been using it daily for about six months now. One small request from our team: would you consider adding a dark mode for the analytics dashboard? A few of us work late hours and the white background is rough on the eyes.
+
+No urgency at all, just wanted to put it on your radar. Keep up the great work!
+
+Best,
+Priya`,
+  critical: `Subject: URGENT - I can see another company's data
+
+Hello,
+
+I logged into my account this morning (acct: brightwave-media) and the dashboard is showing invoices and customer records that are NOT ours — looks like data from a completely different company. This seems like a serious data leak. We have taken screenshots. Please escalate to your security team immediately and confirm receipt of this email.
+
+Daniel Reyes
+CTO, Brightwave Media`
+};
+
+const URGENCY_COLORS = { low: "var(--green)", medium: "var(--amber)", high: "var(--orange)", critical: "var(--red)" };
+const SENTIMENT_COLORS = { positive: "var(--green)", neutral: "var(--gray-500)", frustrated: "var(--orange)", angry: "var(--red)" };
+
+const input = document.getElementById("email-input");
+const btn = document.getElementById("triage-btn");
+const errorBox = document.getElementById("error-box");
+const results = document.getElementById("results");
+
+document.querySelectorAll(".examples button").forEach(b => {
+  b.addEventListener("click", () => { input.value = EXAMPLES[b.dataset.example]; });
+});
+
+btn.addEventListener("click", async () => {
+  const email = input.value.trim();
+  errorBox.style.display = "none";
+  if (!email) {
+    errorBox.textContent = "Paste an email first (or use one of the examples).";
+    errorBox.style.display = "block";
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = "Triaging...";
+  results.style.display = "none";
+
+  try {
+    const res = await fetch("/api/triage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Request failed");
+    render(data);
+  } catch (err) {
+    errorBox.textContent = err.message;
+    errorBox.style.display = "block";
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "Triage Email";
+  }
+});
+
+function badge(label, value, color) {
+  return `<span class="badge" style="background:${color}"><span class="label">${label}</span>${value}</span>`;
+}
+
+function render(d) {
+  document.getElementById("badges").innerHTML =
+    badge("Intent", d.intent.replace(/_/g, " "), "var(--navy)") +
+    badge("Urgency", d.urgency, URGENCY_COLORS[d.urgency] || "var(--gray-500)") +
+    badge("Sentiment", d.sentiment, SENTIMENT_COLORS[d.sentiment] || "var(--gray-500)") +
+    badge("Confidence", Math.round(d.confidence * 100) + "%", "var(--blue)");
+  document.getElementById("summary").textContent = d.summary;
+  document.getElementById("category").textContent = d.category;
+  document.getElementById("reply").textContent = d.suggested_reply;
+  const m = d._meta || {};
+  document.getElementById("meta").textContent =
+    `Model: ${m.model || "n/a"} · Tokens: ${m.prompt_tokens ?? "?"} in / ${m.completion_tokens ?? "?"} out` +
+    (m.truncated ? " · (email truncated)" : "");
+  results.style.display = "block";
+  results.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+</script>
+</body>
+</html>
