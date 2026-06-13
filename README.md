@@ -8,15 +8,15 @@ Paste a raw customer support email → get instant structured triage: **intent, 
 
 ## What it does
 
-| Input | Output |
-|---|---|
+| Input          | Output                                                                                                                   |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Raw email text | `intent` — refund_request / technical_issue / billing_question / feature_request / complaint / general_inquiry / spam |
-| | `urgency` — low / medium / high / critical |
-| | `sentiment` — positive / neutral / frustrated / angry |
-| | `category` — suggested department routing |
-| | `summary` — one-sentence summary |
-| | `suggested_reply` — professional 2-4 sentence draft |
-| | `confidence` — classification confidence 0-1 |
+|                | `urgency` — low / medium / high / critical                                                                            |
+|                | `sentiment` — positive / neutral / frustrated / angry                                                                 |
+|                | `category` — suggested department routing                                                                             |
+|                | `summary` — one-sentence summary                                                                                      |
+|                | `suggested_reply` — professional 2-4 sentence draft                                                                   |
+|                | `confidence` — classification confidence 0-1                                                                          |
 
 ## Architecture
 
@@ -63,6 +63,12 @@ PORT=3000
 - Human-in-the-loop review queue for `critical` and low-confidence results
 - Per-tenant prompt customization (company tone, policies, product names)
 - Evaluation harness with labeled test set to measure classification accuracy over time
+
+## Known limitations / design notes:
+
+- Single-word or content-free messages ("hi") are classified as spam since they contain no actionable request. Teams that prefer to treat these as incomplete inquiries (and auto-prompt for detail) can adjust the spam definition in the system prompt — the suggested reply already handles this case gracefully.
+- Cancellations classify as general_inquiry/low — teams wanting churn-flag routing should extend the intent enum with a `cancellation_request` type.
+- GDPR and formal data requests route correctly to Legal Compliance at medium urgency — the 30-day statutory window is correctly not treated as critical.
 
 ## Author
 
