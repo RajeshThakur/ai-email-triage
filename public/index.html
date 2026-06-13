@@ -206,6 +206,36 @@
     footer a {
       color: var(--blue);
     }
+
+    .loading-bar-wrap {
+      height: 3px;
+      background: var(--gray-200);
+      border-radius: 999px;
+      margin-top: 12px;
+      overflow: hidden;
+      display: none;
+    }
+
+    .loading-bar {
+      height: 100%;
+      width: 0%;
+      background: var(--blue);
+      border-radius: 999px;
+      transition: width 0.3s ease;
+      animation: indeterminate 1.4s ease infinite;
+    }
+
+    @keyframes indeterminate {
+      0% {
+        transform: translateX(-100%);
+        width: 60%;
+      }
+
+      100% {
+        transform: translateX(200%);
+        width: 60%;
+      }
+    }
   </style>
 </head>
 
@@ -229,6 +259,9 @@
         <button data-example="rambling">Try: buried urgent request</button>
       </div>
       <button class="submit-btn" id="triage-btn">Triage Email</button>
+      <div class="loading-bar-wrap" id="loading-bar-wrap">
+        <div class="loading-bar"></div>
+      </div>
       <div class="error" id="error-box"></div>
     </div>
 
@@ -250,8 +283,9 @@
     </div>
 
     <footer>
-      Demo project by Rajesh Thakur — senior backend &amp; AI integration engineer.
+      Demo project by <strong>Rajesh Thakur</strong> — senior backend &amp; AI integration engineer.
       Source on <a href="https://github.com/RajeshThakur/ai-email-triage" target="_blank" rel="noopener">GitHub</a>.
+      <br>Built with OpenAI gpt-4o-mini · ~$0.001 per email triaged · temperature 0 for deterministic classification.
     </footer>
   </div>
 
@@ -307,6 +341,7 @@ CTO, Brightwave Media`,
 
       btn.disabled = true;
       btn.textContent = "Triaging...";
+      document.getElementById("loading-bar-wrap").style.display = "block";
       results.style.display = "none";
 
       try {
@@ -324,6 +359,7 @@ CTO, Brightwave Media`,
       } finally {
         btn.disabled = false;
         btn.textContent = "Triage Email";
+        document.getElementById("loading-bar-wrap").style.display = "none";
       }
     });
 
@@ -345,7 +381,9 @@ CTO, Brightwave Media`,
         `Model: ${m.model || "n/a"} · Tokens: ${m.prompt_tokens ?? "?"} in / ${m.completion_tokens ?? "?"} out` +
         (m.truncated ? " · (email truncated)" : "");
       results.style.display = "block";
-      results.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      setTimeout(() => {
+        results.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 100);
     }
   </script>
 </body>
