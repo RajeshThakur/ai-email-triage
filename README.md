@@ -4,7 +4,7 @@ Paste a raw customer support email → get instant structured triage: **intent, 
 
 > Built as a production-pattern demo of LLM workflow automation: the single most requested AI use case for SMB support teams.
 
-**Live demo:** _(add Railway URL after deploy)_
+**Live demo:** https://ai-email-triage-stlr.onrender.com
 
 ## What it does
 
@@ -37,6 +37,9 @@ Deliberately simple: one endpoint, no database, no framework overhead. The engin
 - **Input truncation at 8K chars** — predictable latency and cost; the model is told when truncation occurred.
 - **One retry, then fail loud** — transient API hiccups are retried once; persistent failures return a clean 502 rather than fake data.
 - **In-memory rate limiting (10 req/min/IP)** — protects the demo's API budget. Production would use Redis.
+- **Cancellation requests** classify as `general_inquiry/low` — teams wanting explicit churn-signal routing should extend the intent enum with `cancellation_request`.
+- **GDPR/legal data requests** route automatically to Legal Compliance at medium urgency — the 30-day statutory window is correctly not treated as critical.
+- **Content-free messages** ("hi") classify as spam since they contain no actionable request. Teams preferring `general_inquiry` for incomplete messages can adjust the spam definition in the system prompt.
 
 ## Run locally
 
@@ -69,6 +72,7 @@ PORT=3000
 - Single-word or content-free messages ("hi") are classified as spam since they contain no actionable request. Teams that prefer to treat these as incomplete inquiries (and auto-prompt for detail) can adjust the spam definition in the system prompt — the suggested reply already handles this case gracefully.
 - Cancellations classify as general_inquiry/low — teams wanting churn-flag routing should extend the intent enum with a `cancellation_request` type.
 - GDPR and formal data requests route correctly to Legal Compliance at medium urgency — the 30-day statutory window is correctly not treated as critical.
+- "Demo may take ~30 seconds to wake on first load (free tier).
 
 ## Author
 
