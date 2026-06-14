@@ -74,6 +74,26 @@ PORT=3000
 - GDPR and formal data requests route correctly to Legal Compliance at medium urgency — the 30-day statutory window is correctly not treated as critical.
 - "Demo may take ~30 seconds to wake on first load (free tier).
 
+## Cost & rate limiting
+
+This demo calls the OpenAI API on every request, so it includes three layers
+of protection to bound costs on a public, free-tier deployment:
+
+- **10 requests/min per IP** — burst protection
+- **5 triages/day per IP** — stops one visitor from exhausting the shared quota
+- **100 triages/day total** — hard global ceiling (~$0.10–0.20/day worst case)
+
+Limits are IP-based and stored in-memory, so they reset if the server
+restarts (which happens on Render's free tier after idle). This is sufficient
+to bound costs on a low-traffic public demo; a production deployment serving
+real users would use a persistent store (Redis) and proper auth-based quotas.
+
+## Running your own copy
+
+This repo is open source — clone it, add your own `OPENAI_API_KEY`, and run
+it. The rate limits above are tuned for the live public demo; adjust or
+remove them for your own deployment as needed.
+
 ## Author
 
 **Rajesh Thakur** — Senior Backend & AI Integration Engineer · 10+ years
